@@ -1,0 +1,25 @@
+[package]
+name = "gbl-fuzz"
+version = "0.0.1"
+authors = ["Automatically generated"]
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.gbl]
+path = ".."
+[dependencies.libfuzzer-sys]
+git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "gbl"
+path = "fuzz_targets/gbl.rs"
+
+[[bin]]
+name = "app_image"
+path = "fuzz_targets/app_image.rs"

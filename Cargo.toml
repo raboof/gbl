@@ -1,0 +1,45 @@
+[package]
+name = "gbl"
+version = "0.1.0"
+authors = [
+    "Jonas Schievink <js@1aim.com>",
+    "Ferdia McKeogh <f.mckeogh@1aim.com>",
+]
+description = "GBL firmware file handling library"
+keywords = ["firmware", "ota", "upgrade", "flash"]
+categories = ["embedded"]  # not entirely accurate
+readme = "README.md"
+edition = "2018"
+
+[dependencies]
+byteorder = "1.2.6"
+num-traits = "0.2.6"
+num-derive = "0.2.2"
+crc32fast = "1.1.2"
+log = "0.4.5"
+env_logger = "0.5.13"
+ring = "0.13.2"
+failure = "0.1.2"
+untrusted = "0.6.2"
+structopt = "0.2.10"
+openssl = "0.10.12"
+rand = "0.5.5"
+hex = "0.3.2"
+either = "1.5.0"
+
+# Public
+uuid = "0.7.1"
+
+[dev-dependencies]
+criterion = "0.2.5"
+
+[[bench]]
+name = "empty"
+harness = false
+
+[[bench]]
+name = "large"
+harness = false
+
+[profile.bench]
+debug = true

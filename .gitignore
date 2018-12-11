@@ -1,0 +1,12 @@
+/target
+**/*.rs.bk
+Cargo.lock
+
+/perf.data*
+/flame.svg
+
+/*.gbl
+/*.bin
+/*.pub
+/*.priv
+# Don't ask

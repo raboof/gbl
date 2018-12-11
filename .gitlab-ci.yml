@@ -1,0 +1,10 @@
+image: rust:latest
+
+initial:
+    variables:
+      RUSTFLAGS: "--deny warnings"
+    script:
+        - rustup component add rustfmt-preview
+        - cargo fmt --all -- --check
+        - cargo test
+        - cargo test --benches -- --test
