@@ -10,6 +10,7 @@ keywords = ["firmware", "ota", "upgrade", "flash"]
 categories = ["embedded"]  # not entirely accurate
 readme = "README.md"
 edition = "2018"
+license = "MIT"
 
 [dependencies]
 byteorder = "1.2.6"
