@@ -515,10 +515,18 @@ impl<'a, S> Gbl<MaybeEncrypted<'a>, S>
 where
     S: SignatureState<'a>,
 {
-    /// If `self` is encrypted, downcasts it to a `Gbl<Encrypted, _>`.
+    /// Inspects the `MaybeEncrypted`, downcasting `self` to a
+    /// `Gbl<Encrypted, _>` if it is encrypted.
     ///
     /// Otherwise, downcasts `self` to a `Gbl<NotEncrypted, _>`. This means that
     /// the `Maybe*` gets stripped in either case.
+    ///
+    /// Note that this will never actually modify or drop data in `self`. All
+    /// that changes is the type, potentially making more methods available on
+    /// the returned `Gbl`.
+    ///
+    /// This will not modify the signature typestate `S`. It works with any `S`
+    /// and simply passes it through.
     pub fn into_encrypted(self) -> Result<Gbl<Encrypted<'a>, S>, Gbl<NotEncrypted<'a>, S>> {
         match self.enc.inner {
             Either::Left(enc) => Ok(Gbl { enc, sig: self.sig }),
@@ -529,10 +537,18 @@ where
         }
     }
 
-    /// If `self` is not encrypted, downcasts it to a `Gbl<NotEncrypted, _>`.
+    /// Inspects the `MaybeEncrypted`, downcasting `self` to a
+    /// `Gbl<NotEncrypted, _>` if it is not encrypted.
     ///
-    /// Otherwise, downcasts `self` to a `Gbl<Encrypted, _>`. This means that the
-    /// `Maybe*` gets stripped in either case.
+    /// Otherwise, downcasts `self` to a `Gbl<Encrypted, _>`. This means that
+    /// the `Maybe*` gets stripped in either case.
+    ///
+    /// Note that this will never actually modify or drop data in `self`. All
+    /// that changes is the type, potentially making more methods available on
+    /// the returned `Gbl`.
+    ///
+    /// This will not modify the signature typestate `S`. It works with any `S`
+    /// and simply passes it through.
     pub fn into_not_encrypted(self) -> Result<Gbl<NotEncrypted<'a>, S>, Gbl<Encrypted<'a>, S>> {
         match self.enc.inner {
             Either::Left(enc) => Err(Gbl { enc, sig: self.sig }),
@@ -549,9 +565,18 @@ impl<'a, E> Gbl<E, MaybeSigned<'a>>
 where
     E: EncryptionState<'a>,
 {
-    /// If `self` is signed, downcasts it to a `Gbl<_, Signed>`.
+    /// Inspects the `MaybeSigned`, downcasting `self` to a `Gbl<_, Signed>` if
+    /// it is signed.
     ///
-    /// Otherwise, downcasts `self` to a `Gbl<_, NotSigned>`.
+    /// Otherwise, downcasts `self` to a `Gbl<_, NotSigned>`. This means that
+    /// the `Maybe*` gets stripped in either case.
+    ///
+    /// Note that this will never actually modify or drop data in `self`. All
+    /// that changes is the type, potentially making more methods available on
+    /// the returned `Gbl`.
+    ///
+    /// This will not modify the encryption typestate `E`. It works with any `E`
+    /// and simply passes it through.
     pub fn into_signed(self) -> Result<Gbl<E, Signed<'a>>, Gbl<E, NotSigned<'a>>> {
         match self.sig.inner {
             Either::Left(signed) => Ok(Gbl {
@@ -565,10 +590,18 @@ where
         }
     }
 
-    /// If `self` is not signed, downcasts it to a `Gbl<_, NotSigned>`.
+    /// Inspects the `MaybeSigned`, downcasting `self` to a `Gbl<_, NotSigned>`
+    /// if it is signed.
     ///
-    /// Otherwise (if `self` *is* signed), downcasts `self` to a
-    /// `Gbl<_, Signed>`.
+    /// Otherwise, downcasts `self` to a `Gbl<_, Signed>`. This means that the
+    /// `Maybe*` gets stripped in either case.
+    ///
+    /// Note that this will never actually modify or drop data in `self`. All
+    /// that changes is the type, potentially making more methods available on
+    /// the returned `Gbl`.
+    ///
+    /// This will not modify the encryption typestate `E`. It works with any `E`
+    /// and simply passes it through.
     pub fn into_not_signed(self) -> Result<Gbl<E, NotSigned<'a>>, Gbl<E, Signed<'a>>> {
         match self.sig.inner {
             Either::Left(signed) => Err(Gbl {
