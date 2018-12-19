@@ -1220,8 +1220,7 @@ impl<'a> From<AppImage<'a>> for ProgramData<'a> {
 /// ECDSA-P256. The P-256 curve is the same as the `secp256r1` curve, which in
 /// turn is called `prime256v1` by OpenSSL.
 #[derive(Debug)]
-#[doc(hidden)] // FIXME: not usable from outside, but must be public b/c of dumb rules
-pub struct Signature<'a> {
+struct Signature<'a> {
     /// Raw signature blob. Always contains 64 Bytes.
     raw: Blob<Cow<'a, [u8]>>, // WE (probably still) WANT CONST GENERICS!
 }
