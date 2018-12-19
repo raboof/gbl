@@ -1,10 +1,11 @@
 # GBL Firmware file manipulation library
 
+[![crates.io](https://img.shields.io/crates/v/gbl.svg)](https://crates.io/crates/gbl)
+[![docs.rs](https://docs.rs/gbl/badge.svg)](https://docs.rs/gbl/)
+[![Build Status](https://travis-ci.org/1aim/gbl.svg?branch=master)](https://travis-ci.org/1aim/gbl)
+
 Rust library for reading, creating and manipulating `.gbl` firmware update
 files.
-
-Note: In addition to this readme, there is extensive in-code documentation that
-can be viewed by using `cargo doc --open`.
 
 ## Features
 
