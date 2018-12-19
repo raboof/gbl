@@ -12,6 +12,7 @@ env:
     - FEATURES=""  # default configuration
 script:
   - cargo test $FEATURES
+  - cargo test --benches $FEATURES -- --test
 notifications:
   email:
     on_success: never
