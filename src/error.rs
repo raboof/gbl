@@ -58,21 +58,6 @@ impl fmt::Display for Error {
 /// The different kinds of errors that can occur.
 #[derive(Fail, Debug, Clone)]
 pub enum ErrorKind {
-    /// Attempted to encrypt a GBL file that is already encrypted.
-    ///
-    /// It is only possible to encrypt the file once.
-    #[fail(display = "attempted to encrypt a GBL file that is already encrypted")]
-    AlreadyEncrypted,
-
-    /// Attempted to verify the signature of a GBL file that does not contain a
-    /// signature.
-    #[fail(display = "attempted to verify the signature of a GBL file that isn't signed")]
-    NotSigned,
-
-    /// Attempted to decrypt a GBL file that wasn't encrypted.
-    #[fail(display = "attempted to decrypt a GBL file that isn't encrypted")]
-    NotEncrypted,
-
     /// Data could not be parsed because it is malformed.
     ///
     /// "Data" in this case can be the GBL file, an ECDSA or an AES key file.
