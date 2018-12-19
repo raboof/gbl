@@ -31,9 +31,36 @@
 //!
 //! let gbl = Gbl::from_app_image(signed_image);
 //! // Use `gbl.push_data_section` here to add more data to the container
-//! let enc = gbl.encrypt(AesKey::from_token_file(encrypt_key)?);
-//! let signed = enc.sign(signing_key)?;
+//! let encrypted = gbl.encrypt(AesKey::from_token_file(encrypt_key)?);
+//! let signed = encrypted.sign(signing_key)?;
 //! # Ok(()) } run().unwrap();
+//! ```
+//!
+//! Attempting many kinds of invalid operations (here, encrypting a GBL after
+//! signing it), will fail to compile due to invalid typestate:
+//!
+//! ```compile_fail
+//! # use gbl::{Gbl, AppImage, AesKey};
+//! # use failure::Error;
+//! # fn run() -> Result<(), Error> {
+//! # let image_bytes = include_bytes!("../test-data/empty/empty.bin");
+//! # let signing_key = include_str!("../test-data/signing-key");  // in PEM format
+//! # let encrypt_key = include_str!("../test-data/aes-key-tokens");
+//! # let aes_key = AesKey::from_token_file(encrypt_key)?;
+//! # let image = AppImage::parse(image_bytes.as_ref())?;
+//! # let signed_image = image.sign(signing_key)?;
+//! let gbl = Gbl::from_app_image(image);
+//! let signed = gbl.sign(signing_key)?;
+//! let encrypted = signed.encrypt(aes_key);
+//! # Ok(()) } run().unwrap();
+//! ```
+//!
+//! ```notrust
+//! error[E0599]: no method named `encrypt` found for type `gbl::Gbl<gbl::marker::NotEncrypted<'_>, gbl::marker::Signed<'_>>` in the current scope
+//!   --> src/lib.rs:57:24
+//!    |
+//! 17 | let encrypted = signed.encrypt(aes_key);
+//!    |                        ^^^^^^^
 //! ```
 //!
 //! [encrypted]: struct.Gbl.html#method.encrypt
