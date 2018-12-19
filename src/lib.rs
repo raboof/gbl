@@ -48,7 +48,6 @@
 //! # let encrypt_key = include_str!("../test-data/aes-key-tokens");
 //! # let aes_key = AesKey::from_token_file(encrypt_key)?;
 //! # let image = AppImage::parse(image_bytes.as_ref())?;
-//! # let signed_image = image.sign(signing_key)?;
 //! let gbl = Gbl::from_app_image(image);
 //! let signed = gbl.sign(signing_key)?;
 //! let encrypted = signed.encrypt(aes_key);
@@ -61,6 +60,24 @@
 //!    |
 //! 17 | let encrypted = signed.encrypt(aes_key);
 //!    |                        ^^^^^^^
+//! ```
+//!
+//! The correct order of operations would be to encrypt *before* signing the
+//! GBL, which compiles fine:
+//!
+//! ```
+//! # use gbl::{Gbl, AppImage, AesKey};
+//! # use failure::Error;
+//! # fn run() -> Result<(), Error> {
+//! # let image_bytes = include_bytes!("../test-data/empty/empty.bin");
+//! # let signing_key = include_str!("../test-data/signing-key");  // in PEM format
+//! # let encrypt_key = include_str!("../test-data/aes-key-tokens");
+//! # let aes_key = AesKey::from_token_file(encrypt_key)?;
+//! # let image = AppImage::parse(image_bytes.as_ref())?;
+//! let gbl = Gbl::from_app_image(image);
+//! let encrypted = gbl.encrypt(aes_key);
+//! let signed = encrypted.sign(signing_key)?;
+//! # Ok(()) } run().unwrap();
 //! ```
 //!
 //! [encrypted]: struct.Gbl.html#method.encrypt
