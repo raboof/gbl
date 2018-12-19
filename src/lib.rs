@@ -115,14 +115,10 @@ const TAG_COUNT_LIMIT: u32 = 16;
 ///
 /// This struct makes heavy use of typestate to track whether the GBL is
 /// encrypted or contains an ECDSA signature: The `E` type parameter can be
-/// any of `Encrypted`, `NotEncrypted` or `MaybeEncrypted` to indicate whether
-/// the program data in the GBL is encrypted, while `S` can be any of `Signed`,
-/// `NotSigned` or `MaybeSigned` to indicate the presence of a signature.
-///
-/// The `Maybe*` typestates are present when parsing an external GBL file and
-/// can be shed by calling [`into_encrypted`], [`into_not_encrypted`],
-/// [`into_signed`], or [`into_not_signed`], which makes the corresponding
-/// methods available.
+/// any of [`Encrypted`], [`NotEncrypted`] or [`MaybeEncrypted`] to indicate
+/// whether the program data in the GBL is encrypted, while `S` can be any of
+/// [`Signed`], [`NotSigned`] or [`MaybeSigned`] to indicate the presence of a
+/// signature.
 ///
 /// Typestate is used to make misuse of the APIs in this crate as difficult as
 /// possible. It rules out *many* possibly unwanted operations statically, such
@@ -145,6 +141,18 @@ const TAG_COUNT_LIMIT: u32 = 16;
 /// and complex. However, correctness was deemed more important here (in fact,
 /// we've already had internal API-misuse accidents that would've been prevented
 /// by the typestate-based API).
+///
+/// ## Maybe
+///
+/// The `Maybe*` typestates indicate that there is no compile-time knowledge of
+/// the state. They are present when parsing an external GBL file and provide
+/// their information only at *runtime*.
+///
+/// On `Gbl` objects containing `Maybe*`, only a few general methods are
+/// available. To get access to the methods that require more precise typestate,
+/// [`into_encrypted`], [`into_not_encrypted`], [`into_signed`], or
+/// [`into_not_signed`] can be called to effectively downcast from `MaybeX` to
+/// `X` or `NotX`.
 ///
 /// # Examples
 ///
@@ -188,6 +196,12 @@ const TAG_COUNT_LIMIT: u32 = 16;
 /// # Ok(()) } run().unwrap();
 /// ```
 ///
+/// [`Encrypted`]: marker/struct.Encrypted.html
+/// [`NotEncrypted`]: marker/struct.NotEncrypted.html
+/// [`MaybeEncrypted`]: marker/struct.MaybeEncrypted.html
+/// [`Signed`]: marker/struct.Signed.html
+/// [`NotSigned`]: marker/struct.NotSigned.html
+/// [`MaybeSigned`]: marker/struct.MaybeSigned.html
 /// [`ProgramData`]: struct.ProgramData.html
 /// [`into_encrypted`]: #method.into_encrypted
 /// [`into_not_encrypted`]: #method.into_not_encrypted
