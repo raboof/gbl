@@ -1,6 +1,6 @@
 [package]
 name = "gbl"
-version = "0.1.0"
+version = "0.0.0"
 authors = [
     "Jonas Schievink <js@1aim.com>",
     "Ferdia McKeogh <f.mckeogh@1aim.com>",
@@ -46,3 +46,22 @@ harness = false
 
 [profile.bench]
 debug = true
+
+
+# cargo-release configuration
+[package.metadata.release]
+tag-message = "{{version}}"
+no-dev-version = true
+pre-release-commit-message = "Release {{version}}"
+
+# Change the changelog's `Unreleased` section to refer to this release and prepend new `Unreleased` section
+[[package.metadata.release.pre-release-replacements]]
+file    = "CHANGELOG.md"
+search  = "## Unreleased"
+replace = "## Unreleased\n\nNo changes.\n\n## {{version}} - {{date}}"
+
+# Bump the version referenced by the `html_root_url` attribute in `lib.rs`
+[[package.metadata.release.pre-release-replacements]]
+file    = "src/lib.rs"
+search  = "https://docs.rs/gbl/[a-z0-9\\.-]+"
+replace = "https://docs.rs/gbl/{{version}}"
