@@ -13,6 +13,8 @@ categories = ["embedded"]  # not entirely accurate
 readme = "README.md"
 edition = "2018"
 license = "MIT"
+# large testfile is too large for crates.io, so ignore the tests using it
+exclude = ["benches/large.rs", "test-data/large/**"]
 
 [dependencies]
 byteorder = "1.2.6"
