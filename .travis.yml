@@ -3,6 +3,10 @@ rust:
   - 1.31.0
   - stable
   - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
 sudo: false
 env:
   global:
