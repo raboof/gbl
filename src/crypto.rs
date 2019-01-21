@@ -143,7 +143,7 @@ pub fn create_signature(pem_private_key: &str, data_to_sign: &[u8]) -> Result<[u
         )
         .unwrap();
 
-    let keypair = signature::ECDSAKeyPair::from_private_key_and_public_key(
+    let keypair = signature::EcdsaKeyPair::from_private_key_and_public_key(
         &signature::ECDSA_P256_SHA256_FIXED_SIGNING,
         untrusted::Input::from(&priv_key),
         untrusted::Input::from(&pub_key),
@@ -152,8 +152,8 @@ pub fn create_signature(pem_private_key: &str, data_to_sign: &[u8]) -> Result<[u
 
     let sig = keypair
         .sign(
-            untrusted::Input::from(data_to_sign),
             &ring::rand::SystemRandom::new(),
+            untrusted::Input::from(data_to_sign),
         )
         .map_err(|e| Error::with_details(ErrorKind::Other, e.to_string()))?
         .as_ref()
