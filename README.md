@@ -7,6 +7,11 @@
 Rust library for reading, creating and manipulating `.gbl` firmware update
 files.
 
+Also check out [this blog post] for a gentle introduction into the
+crate's typestate-based API.
+
+[this blog post]: https://blog.1aim.com/post/gbl-release/
+
 ## Features
 
 * Creating GBL files from raw application images
