@@ -42,9 +42,6 @@ SUBCOMMANDS:
     verify       Verifies the signature of a signed GBL file.
 ```
 
-Note that the library also supports encryption of GBL files. This is not
-currently exposed in the command-line application.
-
 ## Development
 
 ### Fuzzing
