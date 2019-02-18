@@ -152,9 +152,9 @@ impl AppProperties {
         let complete_image = image;
         if image.len() > Self::MAX_RAW_LEN as usize {
             return Err(Error::parse_err(format!(
-				"could not get application properties from binary image (image larger than limit of {} bytes)",
-				Self::MAX_RAW_LEN
-			)));
+                "could not get application properties from binary image (image larger than limit of {} bytes)",
+                Self::MAX_RAW_LEN
+            )));
         }
 
         if let Some(pos) = image
@@ -204,11 +204,11 @@ impl AppProperties {
             if signature_location != 0 {
                 if signature_location as usize + signature_len > complete_image.len() {
                     return Err(Error::parse_err(format!(
-						"invalid signature location {:#010X} (length is {} bytes, image length is {:#010X})",
-						signature_location,
-						signature_len,
-						complete_image.len(),
-					)));
+                        "invalid signature location {:#010X} (length is {} bytes, image length is {:#010X})",
+                        signature_location,
+                        signature_len,
+                        complete_image.len(),
+                    )));
                 }
 
                 if let SignatureType::None = signature_type {
