@@ -606,6 +606,67 @@ where
     }
 }
 
+/// Generic upcasting methods to `Maybe*` variants.
+impl<'a, E, S> Gbl<E, S>
+where
+    E: EncryptionState<'a>,
+    S: SignatureState<'a>,
+{
+    /// Erases the encryption type state by upcasting to `MaybeEncrypted`.
+    ///
+    /// This can be used to avoid code duplication in code that needs to handle
+    /// both encrypted and non-encrypted GBLs.
+    ///
+    /// This conversion can also be performed using `Into`/`From`.
+    pub fn into_maybe_encrypted(self) -> Gbl<MaybeEncrypted<'a>, S> {
+        Gbl {
+            enc: MaybeEncrypted {
+                inner: self.enc.into_either(),
+            },
+            sig: self.sig,
+        }
+    }
+
+    /// Erases the signature type state by upcasting to `MaybeSigned`.
+    ///
+    /// This can be used to avoid code duplication in code that needs to handle
+    /// both signed and non-signed GBLs.
+    ///
+    /// This conversion can also be performed using `Into`/`From`.
+    pub fn into_maybe_signed(self) -> Gbl<E, MaybeSigned<'a>> {
+        Gbl {
+            enc: self.enc,
+            sig: MaybeSigned {
+                inner: self.sig.into_either(),
+            },
+        }
+    }
+}
+
+impl<'a, S: SignatureState<'a>> From<Gbl<Encrypted<'a>, S>> for Gbl<MaybeEncrypted<'a>, S> {
+    fn from(gbl: Gbl<Encrypted<'a>, S>) -> Self {
+        gbl.into_maybe_encrypted()
+    }
+}
+
+impl<'a, S: SignatureState<'a>> From<Gbl<NotEncrypted<'a>, S>> for Gbl<MaybeEncrypted<'a>, S> {
+    fn from(gbl: Gbl<NotEncrypted<'a>, S>) -> Self {
+        gbl.into_maybe_encrypted()
+    }
+}
+
+impl<'a, E: EncryptionState<'a>> From<Gbl<E, Signed<'a>>> for Gbl<E, MaybeSigned<'a>> {
+    fn from(gbl: Gbl<E, Signed<'a>>) -> Gbl<E, MaybeSigned<'a>> {
+        gbl.into_maybe_signed()
+    }
+}
+
+impl<'a, E: EncryptionState<'a>> From<Gbl<E, NotSigned<'a>>> for Gbl<E, MaybeSigned<'a>> {
+    fn from(gbl: Gbl<E, NotSigned<'a>>) -> Gbl<E, MaybeSigned<'a>> {
+        gbl.into_maybe_signed()
+    }
+}
+
 /// `MaybeSigned` -> `(Not)Signed` downcasting methods.
 impl<'a, E> Gbl<E, MaybeSigned<'a>>
 where

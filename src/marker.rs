@@ -53,6 +53,7 @@ pub(crate) mod private {
         fn into_owned(self) -> Self::StaticSelf;
         fn clone(&'a self) -> Self;
 
+        fn into_either(self) -> Either<Signed<'a>, NotSigned<'a>>;
         fn as_either_ref(&self) -> Either<&Signed<'a>, &NotSigned<'a>>;
     }
 }
@@ -216,6 +217,10 @@ impl<'a> SignatureState<'a> for Signed<'a> {
         }
     }
 
+    fn into_either(self) -> Either<Signed<'a>, NotSigned<'a>> {
+        Either::Left(self)
+    }
+
     fn as_either_ref(&self) -> Either<&Signed<'a>, &NotSigned<'a>> {
         Either::Left(self)
     }
@@ -229,6 +234,10 @@ impl<'a> SignatureState<'a> for NotSigned<'a> {
 
     fn clone(&'a self) -> Self {
         NotSigned::new()
+    }
+
+    fn into_either(self) -> Either<Signed<'a>, NotSigned<'a>> {
+        Either::Right(self)
     }
 
     fn as_either_ref(&self) -> Either<&Signed<'a>, &NotSigned<'a>> {
@@ -255,6 +264,10 @@ impl<'a> SignatureState<'a> for MaybeSigned<'a> {
                 .map_left(Signed::clone)
                 .map_right(NotSigned::clone),
         }
+    }
+
+    fn into_either(self) -> Either<Signed<'a>, NotSigned<'a>> {
+        self.inner
     }
 
     fn as_either_ref(&self) -> Either<&Signed<'a>, &NotSigned<'a>> {
