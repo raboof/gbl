@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-No changes.
+Fix handling of `AppProperties` versions by accepting minor version bumps.
 
 ## 0.1.1 - 2019-01-21
 
