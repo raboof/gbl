@@ -27,7 +27,7 @@ use uuid::Uuid;
 pub struct AppInfo {
     /// Application type. Bitfield.
     type_: u32,
-    /// Application version.
+    /// Application version (not the version of the struct layout).
     version: u32,
     capabilities: u32,
     product_id: Uuid,
@@ -127,6 +127,14 @@ pub struct AppProperties {
     /// bytes).
     position: u32,
 
+    /// Version of this struct.
+    ///
+    /// We have observed values of `0x100` and `0x101`, with a compatible
+    /// layout, so the assumption is that the low byte is a minor/patch version
+    /// that is incremented when stuff gets added to this struct. The other byte
+    /// is always `0x01` in the observed files and is interpreted as the major
+    /// version of the struct, so other versions larger than 1 are rejected as
+    /// unsupported.
     version: u32,
     signature_type: SignatureType,
     signature_location: u32,
@@ -142,8 +150,10 @@ impl AppProperties {
     /// Number of bytes occupied by the app properties in the image.
     const LENGTH: usize = 16 /* magic */ + 3 * 4 /* version, sig type/loc */ + AppInfo::LENGTH;
 
-    /// Supported version.
-    const VERSION: u32 = 0x00000100;
+    /// Supported major version number.
+    ///
+    /// We have only observed 1 so far.
+    const MAJOR_VERSION_SUPPORTED: u32 = 1;
 
     const MAX_RAW_LEN: u32 = 0x80000000;
 
@@ -175,11 +185,13 @@ impl AppProperties {
 
             let mut image = &image[pos + Self::MAGIC.len()..];
             let version = image.read_u32::<LittleEndian>()?;
-            if version > Self::VERSION {
+            let (v_major, v_minor) = (version >> 8, version & 0xff);
+            if v_major > Self::MAJOR_VERSION_SUPPORTED {
                 return Err(Error::parse_err(format!(
-                    "unsupported app property struct version {:#010X} (expected {:#010X})",
-                    version,
-                    Self::VERSION
+                    "unsupported app property struct version {}.{} (expected {}.x)",
+                    v_major,
+                    v_minor,
+                    Self::MAJOR_VERSION_SUPPORTED
                 )));
             }
 
