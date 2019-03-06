@@ -86,7 +86,7 @@
 //! [`Gbl::from_app_image`]: struct.Gbl.html#method.from_app_image
 //! [`AppImage`]: struct.AppImage.html
 
-#![doc(html_root_url = "https://docs.rs/gbl/0.1.1")]
+#![doc(html_root_url = "https://docs.rs/gbl/0.1.2")]
 
 /*
 
