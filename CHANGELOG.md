@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No changes.
+
+## 0.1.3 - 2019-03-06
+
 * Add support for upcasting from concrete encryption/signature type states to
   `MaybeEncrypted`/`MaybeSigned`.
 
