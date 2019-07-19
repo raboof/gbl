@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/gbl.svg)](https://crates.io/crates/gbl)
 [![docs.rs](https://docs.rs/gbl/badge.svg)](https://docs.rs/gbl/)
-[![Build Status](https://travis-ci.org/1aim/gbl.svg?branch=master)](https://travis-ci.org/1aim/gbl)
+[![Build Status](https://travis-ci.org/dac-gmbh/gbl.svg?branch=master)](https://travis-ci.org/dac-gmbh/gbl)
 
 Rust library for reading, creating and manipulating `.gbl` firmware update
 files.
