@@ -11,6 +11,18 @@ use openssl::ec::PointConversionForm;
 use openssl::pkey::PKey;
 use openssl::symm::{self, Cipher, Crypter};
 use ring::signature;
+use ring::rand::{SecureRandom, SystemRandom};
+
+/// Generates a random 12-Byte nonce using the OS random number generator.
+///
+/// If obtaining the random data fails, this function will panic. This should
+/// not really happen during normal usage.
+pub fn random_nonce() -> [u8; 12] {
+    let mut nonce = [0; 12];
+    SystemRandom::new().fill(&mut nonce)
+        .expect("unable to obtain random bytes");
+    nonce
+}
 
 /// Builds the 16-byte IV from the 12-byte nonce stored in the encryption init
 /// header.

@@ -514,7 +514,7 @@ impl<'a> Gbl<NotEncrypted<'a>, NotSigned<'a>> {
     pub fn encrypt(self, key: AesKey) -> Gbl<Encrypted<'a>, NotSigned<'a>> {
         debug_assert!(!self.is_encrypted());
 
-        let nonce = rand::random::<[u8; 12]>();
+        let nonce = crypto::random_nonce();
         // FIXME(perf): Optimize storage (`Vec<&[u8]>` with a shared backing store)
         let sec_count = self.enc.sections.len() + 1; // + 1 for AppData
         let mut sections: Vec<Vec<u8>> = Vec::with_capacity(sec_count);
