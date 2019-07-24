@@ -1,7 +1,7 @@
 extern crate gbl;
 
 use gbl::marker::{MaybeEncrypted, MaybeSigned};
-use gbl::{AesKey, AppImage, Gbl};
+use gbl::{AesKey, AppImage, Gbl, P256KeyPair, P256PublicKey};
 
 /// Includes a binary or text file from the test data directory.
 macro_rules! test_data {
@@ -161,13 +161,13 @@ fn verify_empty_gbl() {
     let signed = Gbl::parse(test_data!(bytes "empty/empty-signed.gbl")).unwrap();
     let signed = signed.into_signed().unwrap();
     signed
-        .verify_signature(test_data!(str "signing-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "signing-key.pub")).unwrap())
         .unwrap();
 
     let signed = Gbl::parse(test_data!(bytes "empty/empty-signed-encrypted.gbl")).unwrap();
     let signed = signed.into_signed().unwrap();
     signed
-        .verify_signature(test_data!(str "signing-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "signing-key.pub")).unwrap())
         .unwrap();
 }
 
@@ -188,27 +188,30 @@ fn verify_empty_gbl_negative() {
 
         // Signature made by different key
         signed
-            .verify_signature(test_data!(str "different-key.pub"))
+            .verify_signature(
+                &P256PublicKey::from_pem(test_data!(str "different-key.pub")).unwrap(),
+            )
             .unwrap_err();
 
         // Key invalid
-        signed
-            .verify_signature(test_data!(str "different-key-tokens.txt"))
-            .unwrap_err();
-        signed
-            .verify_signature(test_data!(str "different-key"))
-            .unwrap_err();
+        P256PublicKey::from_pem(test_data!(str "different-key-tokens.txt"))
+            .err()
+            .unwrap();
+
+        // Parse a private key as a public key
+        P256PublicKey::from_pem(test_data!(str "different-key"))
+            .err()
+            .unwrap();
 
         // RSA key (we need an EC key)
-        assert!(signed
-            .verify_signature(test_data!(str "rsa-key.pub"))
-            .unwrap_err()
-            .to_string()
-            .contains("not an ECDSA key"));
+        P256PublicKey::from_pem(test_data!(str "rsa-key.pub"))
+            .err()
+            .unwrap();
+
         // RSA private key (even wronger)
-        signed
-            .verify_signature(test_data!(str "rsa-key"))
-            .unwrap_err();
+        P256PublicKey::from_pem(test_data!(str "rsa-key"))
+            .err()
+            .unwrap();
     }
 
     let signed = Gbl::parse(test_data!(bytes "empty/empty-signed.gbl")).unwrap();
@@ -229,15 +232,17 @@ fn sign_empty_gbl() {
     let signed = Gbl::parse(test_data!(bytes "empty/empty-signed.gbl")).unwrap();
     let signed = signed.into_signed().unwrap();
 
-    let signed2 = original.sign(test_data!(str "signing-key")).unwrap();
+    let signed2 = original
+        .sign(&P256KeyPair::from_pem(test_data!(str "signing-key")).unwrap())
+        .unwrap();
     assert!(signed2.is_signed());
     assert!(!signed2.is_encrypted());
 
     signed
-        .verify_signature(test_data!(str "signing-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "signing-key.pub")).unwrap())
         .unwrap();
     signed2
-        .verify_signature(test_data!(str "/signing-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "/signing-key.pub")).unwrap())
         .unwrap();
 
     // `signed` and `signed2` won't contain the exact same bytes since ECDSA
@@ -247,16 +252,16 @@ fn sign_empty_gbl() {
     // with a different key.
     let signed2 = signed
         .remove_signature()
-        .sign(test_data!(str "different-key"))
+        .sign(&P256KeyPair::from_pem(test_data!(str "different-key")).unwrap())
         .unwrap();
     assert!(signed2.is_signed());
     assert!(!signed2.is_encrypted());
 
     signed2
-        .verify_signature(test_data!(str "signing-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "signing-key.pub")).unwrap())
         .unwrap_err();
     signed2
-        .verify_signature(test_data!(str "different-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "different-key.pub")).unwrap())
         .unwrap();
 
     let enc = Gbl::parse(test_data!(bytes "empty/empty-encrypted.gbl")).unwrap();
@@ -265,14 +270,19 @@ fn sign_empty_gbl() {
     let enc = enc.into_encrypted().unwrap().into_not_signed().unwrap();
     assert!(!enc.is_signed());
     assert!(enc.is_encrypted());
-    let signed_enc = enc.clone().sign(test_data!(str "signing-key")).unwrap();
+    let signed_enc = enc
+        .clone()
+        .sign(&P256KeyPair::from_pem(test_data!(str "signing-key")).unwrap())
+        .unwrap();
     assert!(signed_enc.is_signed());
     assert!(signed_enc.is_encrypted());
     signed_enc
-        .verify_signature(test_data!(str "signing-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "signing-key.pub")).unwrap())
         .unwrap();
 
-    enc.clone().sign(test_data!(str "rsa-key")).unwrap_err();
+    P256KeyPair::from_pem(test_data!(str "rsa-key"))
+        .err()
+        .unwrap();
 }
 
 /// Tests that signing an already signed GBL overwrites the signature.
@@ -281,23 +291,25 @@ fn sign_twice() {
     let original = Gbl::parse(test_data!(bytes "empty/empty.gbl")).unwrap();
     let original = original.into_not_signed().unwrap();
 
-    let signed = original.sign(test_data!(str "signing-key")).unwrap();
+    let signed = original
+        .sign(&P256KeyPair::from_pem(test_data!(str "signing-key")).unwrap())
+        .unwrap();
     assert!(signed.is_signed());
     assert!(!signed.is_encrypted());
 
     let signed_twice = signed
         .clone()
         .remove_signature()
-        .sign(test_data!(str "different-key"))
+        .sign(&P256KeyPair::from_pem(test_data!(str "different-key")).unwrap())
         .unwrap();
     assert!(signed_twice.is_signed());
     assert!(!signed_twice.is_encrypted());
 
     signed
-        .verify_signature(test_data!(str "signing-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "signing-key.pub")).unwrap())
         .unwrap();
     signed_twice
-        .verify_signature(test_data!(str "different-key.pub"))
+        .verify_signature(&P256PublicKey::from_pem(test_data!(str "different-key.pub")).unwrap())
         .unwrap();
 }
 
@@ -329,7 +341,9 @@ fn sign_app_image() {
     assert!(!app_image.is_signed());
     assert!(app_image.ecdsa_signature().is_none());
 
-    let signed = app_image.sign(test_data!(str "signing-key")).unwrap();
+    let signed = app_image
+        .sign(&P256KeyPair::from_pem(test_data!(str "signing-key")).unwrap())
+        .unwrap();
     assert!(signed.is_signed());
     assert!(signed.ecdsa_signature().is_some());
 
@@ -339,7 +353,9 @@ fn sign_app_image() {
     let signed = AppImage::parse(&raw).unwrap();
 
     // signing it again should replace the existing signature and not grow the image
-    let signed_again = signed.sign(test_data!(str "signing-key")).unwrap();
+    let signed_again = signed
+        .sign(&P256KeyPair::from_pem(test_data!(str "signing-key")).unwrap())
+        .unwrap();
     assert!(signed_again.is_signed());
     assert!(signed_again.ecdsa_signature().is_some());
     assert_eq!(signed_again.into_raw().len(), raw.len());

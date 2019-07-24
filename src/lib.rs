@@ -19,20 +19,20 @@
 //! and encrypting a GBL file containing it:
 //!
 //! ```
-//! # use gbl::{Gbl, AppImage, AesKey};
+//! # use gbl::{Gbl, AppImage, AesKey, P256KeyPair};
 //! # use failure::Error;
 //! # fn run() -> Result<(), Error> {
 //! let image_bytes = include_bytes!("../test-data/empty/empty.bin");
-//! let signing_key = include_str!("../test-data/signing-key");  // in PEM format
+//! let signing_key = P256KeyPair::from_pem(include_str!("../test-data/signing-key"))?;
 //! let encrypt_key = include_str!("../test-data/aes-key-tokens");
 //!
 //! let image = AppImage::parse(image_bytes.as_ref())?;
-//! let signed_image = image.sign(signing_key)?;
+//! let signed_image = image.sign(&signing_key)?;
 //!
 //! let gbl = Gbl::from_app_image(signed_image);
 //! // Use `gbl.push_data_section` here to add more data to the container
 //! let encrypted = gbl.encrypt(AesKey::from_token_file(encrypt_key)?);
-//! let signed = encrypted.sign(signing_key)?;
+//! let signed = encrypted.sign(&signing_key)?;
 //! # Ok(()) } run().unwrap();
 //! ```
 //!
@@ -40,11 +40,11 @@
 //! signing it), will fail to compile due to invalid typestate:
 //!
 //! ```compile_fail
-//! # use gbl::{Gbl, AppImage, AesKey};
+//! # use gbl::{Gbl, AppImage, AesKey, P256KeyPair};
 //! # use failure::Error;
 //! # fn run() -> Result<(), Error> {
 //! # let image_bytes = include_bytes!("../test-data/empty/empty.bin");
-//! # let signing_key = include_str!("../test-data/signing-key");  // in PEM format
+//! # let signing_key = &P256KeyPair::from_pem(include_str!("../test-data/signing-key")).unwrap();
 //! # let encrypt_key = include_str!("../test-data/aes-key-tokens");
 //! # let aes_key = AesKey::from_token_file(encrypt_key)?;
 //! # let image = AppImage::parse(image_bytes.as_ref())?;
@@ -66,11 +66,11 @@
 //! GBL, which compiles fine:
 //!
 //! ```
-//! # use gbl::{Gbl, AppImage, AesKey};
+//! # use gbl::{Gbl, AppImage, AesKey, P256KeyPair};
 //! # use failure::Error;
 //! # fn run() -> Result<(), Error> {
 //! # let image_bytes = include_bytes!("../test-data/empty/empty.bin");
-//! # let signing_key = include_str!("../test-data/signing-key");  // in PEM format
+//! # let signing_key = &P256KeyPair::from_pem(include_str!("../test-data/signing-key")).unwrap();
 //! # let encrypt_key = include_str!("../test-data/aes-key-tokens");
 //! # let aes_key = AesKey::from_token_file(encrypt_key)?;
 //! # let image = AppImage::parse(image_bytes.as_ref())?;
@@ -124,7 +124,7 @@ mod utils;
 
 pub use crate::appimage::{AppImage, AppInfo};
 pub use crate::error::{Error, ErrorKind};
-pub use crate::key::AesKey;
+pub use crate::key::{AesKey, P256KeyPair, P256PublicKey};
 
 use crate::marker::private::*;
 use crate::marker::*;
@@ -749,9 +749,7 @@ where
     /// Attempts to verify the ECDSA signature attached to the GBL.
     ///
     /// If the signature was not created by the private key belonging to
-    /// `pem_pubkey`, the signature was probably forged and an error will be
-    /// returned. An error will also be returned if the public key is malformed
-    /// or otherwise invalid.
+    /// `pubkey`, an error will be returned.
     ///
     /// If the GBL is encrypted, the signature is computed over the encrypted
     /// data. Consequently, decrypting the GBL disposes of the signature. Check
@@ -759,18 +757,16 @@ where
     ///
     /// # Parameters
     ///
-    /// * `pem_pubkey`: The public key in PEM ASCII format
-    ///   (`-----BEGIN PUBLIC KEY-----` etc.).
-    pub fn verify_signature(&self, pem_pubkey: &str) -> Result<(), Error> {
+    /// * `pubkey`: The public P-256 key to verify against.
+    pub fn verify_signature(&self, pubkey: &P256PublicKey) -> Result<(), Error> {
         let signature = &self.sig.signature;
         let mut signed_data = Vec::new();
         self.write_data_to_sign(&mut signed_data)
             .expect("writing into `Vec` failed");
 
-        // *chants* GIVE US CONST GENERICS NOW!
         let mut raw_signature = [0; 64];
         raw_signature.copy_from_slice(&signature.raw);
-        crypto::verify_signature(pem_pubkey, &raw_signature, &signed_data)
+        crypto::verify_signature(pubkey, &raw_signature, &signed_data)
     }
 
     /// Strips the signature from `self` without verifying it.
@@ -810,17 +806,16 @@ where
     ///
     /// # Parameters
     ///
-    /// * `pem_private_key`: The unencrypted private key in PEM ASCII format
-    ///   (`-----BEGIN EC PRIVATE KEY-----` etc.).
+    /// * `key`: The P-256 keypair to sign with.
     ///
     /// [`AppImage::sign`]: struct.AppImage.html#method.sign
-    pub fn sign(self, pem_private_key: &str) -> Result<Gbl<E, Signed<'a>>, Error> {
+    pub fn sign(self, key: &P256KeyPair) -> Result<Gbl<E, Signed<'a>>, Error> {
         // Obtain the blob we want to sign
         let mut sign_data = Vec::with_capacity(1024); // save the first few likely resizes
         self.write_data_to_sign(&mut sign_data)
             .expect("writing into `Vec` failed");
 
-        let sig = crypto::create_signature(pem_private_key, &sign_data)?;
+        let sig = crypto::create_signature(key, &sign_data)?;
 
         // Now just attach the signature and we're done.
         Ok(Gbl {

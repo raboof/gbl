@@ -8,7 +8,7 @@ extern crate failure;
 extern crate structopt;
 
 use gbl::uuid::Uuid;
-use gbl::{AesKey, AppImage, AppInfo, Gbl, ProgramData};
+use gbl::{AesKey, AppImage, AppInfo, Gbl, P256KeyPair, P256PublicKey, ProgramData};
 
 use failure::{err_msg, Error, ResultExt};
 use std::fs::File;
@@ -183,7 +183,8 @@ fn appimage(opts: AppImageOpts) -> Result<(), Error> {
             output,
         } => {
             let appimage = fs::read(image)?;
-            let key = fs::read_to_string(privkey)?;
+            let key_str = fs::read_to_string(privkey)?;
+            let key = P256KeyPair::from_pem(key_str)?;
             let appimage = AppImage::parse(&appimage)?;
             let signed = appimage.sign(&key)?;
             fs::write(&output, signed.into_raw())?;
@@ -267,20 +268,22 @@ fn run() -> Result<(), Error> {
             output,
         } => {
             let content = fs::read(gbl)?;
-            let privkey = fs::read_to_string(&privkey).context(privkey.display().to_string())?;
+            let key_str = fs::read_to_string(&privkey).context(privkey.display().to_string())?;
+            let key = P256KeyPair::from_pem(key_str)?;
             let gbl = Gbl::parse(&content)?;
             let gbl = gbl.into_not_signed().unwrap_or_else(|signed| {
                 println!("Warning: GBL is already signed. Removing old signature.");
                 signed.remove_signature()
             });
-            let gbl = gbl.sign(&privkey)?;
+            let gbl = gbl.sign(&key)?;
             gbl.write(&mut File::create(&output)?)?;
             println!("Wrote signed GBL to {}", output.display());
         }
         Opts::Verify { gbl, pubkey } => {
             let content = fs::read(gbl)?;
             let gbl = Gbl::parse(&content)?;
-            let pubkey = fs::read_to_string(pubkey)?;
+            let pubkey_str = fs::read_to_string(pubkey)?;
+            let pubkey = P256PublicKey::from_pem(pubkey_str)?;
             gbl.into_signed()
                 .map_err(|_| err_msg("file is not signed"))?
                 .verify_signature(&pubkey)?;

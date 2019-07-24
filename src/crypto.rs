@@ -4,14 +4,13 @@
 //! keys. Once there's a good Rust crate for that, we should switch to it.
 
 use crate::utils::Blob;
-use crate::{AesKey, Error, ErrorKind};
+use crate::{AesKey, Error, ErrorKind, P256KeyPair, P256PublicKey};
 
 use openssl::bn::{BigNum, BigNumContext};
 use openssl::ec::PointConversionForm;
-use openssl::pkey::PKey;
 use openssl::symm::{self, Cipher, Crypter};
-use ring::signature;
 use ring::rand::{SecureRandom, SystemRandom};
+use ring::signature;
 
 /// Generates a random 12-Byte nonce using the OS random number generator.
 ///
@@ -19,7 +18,8 @@ use ring::rand::{SecureRandom, SystemRandom};
 /// not really happen during normal usage.
 pub fn random_nonce() -> [u8; 12] {
     let mut nonce = [0; 12];
-    SystemRandom::new().fill(&mut nonce)
+    SystemRandom::new()
+        .fill(&mut nonce)
         .expect("unable to obtain random bytes");
     nonce
 }
@@ -86,23 +86,22 @@ pub fn crypt<S: AsRef<[u8]>>(key: AesKey, nonce: [u8; 12], sections: &[S]) -> Ve
         .collect()
 }
 
-pub fn verify_signature(pem_pubkey: &str, signature: &[u8; 64], data: &[u8]) -> Result<(), Error> {
+pub fn verify_signature(
+    pubkey: &P256PublicKey,
+    signature: &[u8; 64],
+    data: &[u8],
+) -> Result<(), Error> {
     // Use OpenSSL to convert the key to uncompressed point format.
     // FIXME: Using both OpenSSL and ring is a bit dumb - we'd need to parse
     // the PEM file (there's a `pem` crate that works), then the contained
     // DER (?) encoded ASN.1 data, then get the contained pubkey and convert
     // it to an "uncompressed point", which I don't think there are crates
     // for.
-    let pkey = PKey::public_key_from_pem(pem_pubkey.as_bytes())
-        .map_err(|e| Error::with_details(ErrorKind::Other, e.to_string()))?;
-    let eckey = pkey
-        .ec_key()
-        .map_err(|_| Error::with_details(ErrorKind::ParseError, "not an ECDSA key"))?; // not an EC key?
 
     // Dump the raw pubkey
     let mut bncx = BigNumContext::new().unwrap();
-    let group = eckey.group();
-    let pubkey = eckey.public_key();
+    let group = pubkey.inner.group();
+    let pubkey = pubkey.inner.public_key();
     {
         let (mut x, mut y) = (BigNum::new().unwrap(), BigNum::new().unwrap());
         pubkey
@@ -124,7 +123,7 @@ pub fn verify_signature(pem_pubkey: &str, signature: &[u8; 64], data: &[u8]) -> 
     }
 
     let uncompressed_bytes = pubkey
-        .to_bytes(eckey.group(), PointConversionForm::UNCOMPRESSED, &mut bncx)
+        .to_bytes(group, PointConversionForm::UNCOMPRESSED, &mut bncx)
         .unwrap();
 
     signature::UnparsedPublicKey::new(&signature::ECDSA_P256_SHA256_FIXED, &uncompressed_bytes)
@@ -134,18 +133,15 @@ pub fn verify_signature(pem_pubkey: &str, signature: &[u8; 64], data: &[u8]) -> 
     Ok(())
 }
 
-pub fn create_signature(pem_private_key: &str, data_to_sign: &[u8]) -> Result<[u8; 64], Error> {
-    // Use OpenSSL's PEM support to grab private and public key.
+pub fn create_signature(keypair: &P256KeyPair, data_to_sign: &[u8]) -> Result<[u8; 64], Error> {
     // TODO: Support signing via hardware security module and via locked key.
-    let pkey = PKey::private_key_from_pem(pem_private_key.as_bytes())
-        .map_err(|e| Error::with_details(ErrorKind::Other, e.to_string()))?;
-    let eckey = pkey.ec_key().map_err(|_| ErrorKind::ParseError)?; // not an EC key?
 
-    let priv_key = eckey.private_key().to_vec(); // big-endian encoding of the bignum
-    let pub_key = eckey
+    let priv_key = keypair.inner.private_key().to_vec(); // big-endian encoding of the bignum
+    let pub_key = keypair
+        .inner
         .public_key()
         .to_bytes(
-            eckey.group(),
+            keypair.inner.group(),
             PointConversionForm::UNCOMPRESSED,
             &mut BigNumContext::new().unwrap(),
         )
@@ -159,10 +155,7 @@ pub fn create_signature(pem_private_key: &str, data_to_sign: &[u8]) -> Result<[u
     .map_err(|_| ErrorKind::ParseError)?;
 
     let sig = keypair
-        .sign(
-            &ring::rand::SystemRandom::new(),
-            data_to_sign,
-        )
+        .sign(&ring::rand::SystemRandom::new(), data_to_sign)
         .map_err(|e| Error::with_details(ErrorKind::Other, e.to_string()))?
         .as_ref()
         .to_vec();

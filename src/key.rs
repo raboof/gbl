@@ -1,6 +1,10 @@
 use crate::Error;
 
 use hex::FromHex;
+use openssl::{
+    ec::EcKey,
+    pkey::{PKey, Private, Public},
+};
 
 /// A symmetric AES-128 encryption/decryption key.
 ///
@@ -182,6 +186,146 @@ impl Into<[u8; 16]> for AesKey {
 impl From<[u8; 16]> for AesKey {
     fn from(raw: [u8; 16]) -> Self {
         AesKey(raw)
+    }
+}
+
+/// An elliptic curve key pair (on P-256 / secp256r1 / prime256v1).
+///
+/// This struct contains the private key and the corresponding public key.
+pub struct P256KeyPair {
+    pub(crate) inner: EcKey<Private>,
+}
+
+impl P256KeyPair {
+    /// Decodes a P-256 key pair from DER-encoded PKCS#8 data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use gbl::{P256KeyPair, Error};
+    /// # fn run() -> Result<(), Box<Error>> {
+    /// let der = [
+    ///     0x30, 0x77, 0x02, 0x01, 0x01, 0x04, 0x20, 0x2b, 0xef, 0xab, 0x60, 0x58,
+    ///     0x50, 0xdb, 0x0b, 0x3b, 0x8e, 0xf7, 0xe0, 0x54, 0xd5, 0xc5, 0xfe, 0x63,
+    ///     0x95, 0x68, 0xb8, 0xcd, 0xfb, 0x86, 0x9b, 0x45, 0xd0, 0xb0, 0xb3, 0x50,
+    ///     0x2c, 0xa3, 0xf5, 0xa0, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d,
+    ///     0x03, 0x01, 0x07, 0xa1, 0x44, 0x03, 0x42, 0x00, 0x04, 0xdc, 0xc7, 0xaf,
+    ///     0xdd, 0x92, 0xe7, 0xc2, 0x0b, 0xfe, 0xbb, 0xd7, 0x08, 0x45, 0xb3, 0x4e,
+    ///     0x92, 0xea, 0x2d, 0x52, 0xc3, 0x38, 0xaa, 0x9b, 0x68, 0xe8, 0x2b, 0x6c,
+    ///     0x82, 0x37, 0x77, 0x29, 0x8f, 0x23, 0x69, 0x39, 0xef, 0x32, 0x72, 0x4c,
+    ///     0x43, 0x44, 0xc8, 0x5f, 0x06, 0x6a, 0x6f, 0x37, 0xb1, 0x3e, 0x35, 0x8f,
+    ///     0x8a, 0xe5, 0x99, 0x61, 0x99, 0x3d, 0x1e, 0x63, 0x6d, 0x68, 0x5c, 0xc1,
+    ///     0xe2
+    /// ];
+    /// let keypair = P256KeyPair::from_der(&der[..])?;
+    /// # Ok(()) }   fn main() { run().unwrap(); }
+    /// ```
+    pub fn from_der<D: AsRef<[u8]>>(pkcs8_der: D) -> Result<Self, Error> {
+        let inner = EcKey::private_key_from_der(pkcs8_der.as_ref())
+            .map_err(|e| Error::parse_err(e.to_string()))?;
+
+        Ok(Self { inner })
+    }
+
+    /// Decodes a P-256 key pair from PEM-encoded PKCS#8 data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use gbl::{P256KeyPair, Error};
+    /// # fn run() -> Result<(), Box<Error>> {
+    /// let pem = r#"
+    /// -----BEGIN EC PRIVATE KEY-----
+    /// MHcCAQEEICvvq2BYUNsLO4734FTVxf5jlWi4zfuGm0XQsLNQLKP1oAoGCCqGSM49
+    /// AwEHoUQDQgAE3Mev3ZLnwgv+u9cIRbNOkuotUsM4qpto6Ctsgjd3KY8jaTnvMnJM
+    /// Q0TIXwZqbzexPjWPiuWZYZk9HmNtaFzB4g==
+    /// -----END EC PRIVATE KEY-----
+    /// "#;
+    /// let keypair = P256KeyPair::from_pem(pem)?;
+    /// # Ok(()) }   fn main() { run().unwrap(); }
+    /// ```
+    pub fn from_pem<P: AsRef<str>>(pkcs8_pem: P) -> Result<Self, Error> {
+        let inner = EcKey::private_key_from_pem(pkcs8_pem.as_ref().as_bytes())
+            .map_err(|e| Error::parse_err(e.to_string()))?;
+
+        Ok(Self { inner })
+    }
+
+    /// Returns the public component of this key pair.
+    pub fn to_public(&self) -> P256PublicKey {
+        let inner = EcKey::from_public_key(self.inner.group(), self.inner.public_key())
+            .expect("couldn't turn good key pair into public key");
+
+        P256PublicKey { inner }
+    }
+}
+
+/// A public P-256 key (aka secp256r1 / prime256v1).
+pub struct P256PublicKey {
+    pub(crate) inner: EcKey<Public>,
+}
+
+impl P256PublicKey {
+    /// Decodes a P-256 public key from a DER-encoded `SubjectPublicKeyInfo` structure.
+    ///
+    /// The `SubjectPublicKeyInfo` structure is described in [RFC 5280].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use gbl::{P256PublicKey, Error};
+    /// # fn run() -> Result<(), Box<Error>> {
+    /// let der = [
+    ///     0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
+    ///     0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03,
+    ///     0x42, 0x00, 0x04, 0xdc, 0xc7, 0xaf, 0xdd, 0x92, 0xe7, 0xc2, 0x0b, 0xfe,
+    ///     0xbb, 0xd7, 0x08, 0x45, 0xb3, 0x4e, 0x92, 0xea, 0x2d, 0x52, 0xc3, 0x38,
+    ///     0xaa, 0x9b, 0x68, 0xe8, 0x2b, 0x6c, 0x82, 0x37, 0x77, 0x29, 0x8f, 0x23,
+    ///     0x69, 0x39, 0xef, 0x32, 0x72, 0x4c, 0x43, 0x44, 0xc8, 0x5f, 0x06, 0x6a,
+    ///     0x6f, 0x37, 0xb1, 0x3e, 0x35, 0x8f, 0x8a, 0xe5, 0x99, 0x61, 0x99, 0x3d,
+    ///     0x1e, 0x63, 0x6d, 0x68, 0x5c, 0xc1, 0xe2
+    /// ];
+    /// let pubkey = P256PublicKey::from_der(&der[..])?;
+    /// # Ok(()) }   fn main() { run().unwrap(); }
+    /// ```
+    ///
+    /// [RFC 5280]: https://tools.ietf.org/html/rfc5280
+    pub fn from_der<D: AsRef<[u8]>>(der: D) -> Result<Self, Error> {
+        let pkey =
+            PKey::public_key_from_der(der.as_ref()).map_err(|e| Error::parse_err(e.to_string()))?;
+        let inner = pkey.ec_key().map_err(|e| Error::parse_err(e.to_string()))?;
+
+        Ok(Self { inner })
+    }
+
+    /// Decodes a P-256 public key from a PEM-encoded `SubjectPublicKeyInfo` structure.
+    ///
+    /// The PEM data should have a header of `-----BEGIN PUBLIC KEY-----`.
+    ///
+    /// The `SubjectPublicKeyInfo` structure is described in [RFC 5280].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use gbl::{P256PublicKey, Error};
+    /// # fn run() -> Result<(), Box<Error>> {
+    /// let pem = r#"
+    /// -----BEGIN PUBLIC KEY-----
+    /// MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE3Mev3ZLnwgv+u9cIRbNOkuotUsM4
+    /// qpto6Ctsgjd3KY8jaTnvMnJMQ0TIXwZqbzexPjWPiuWZYZk9HmNtaFzB4g==
+    /// -----END PUBLIC KEY-----
+    /// "#;
+    /// let pubkey = P256PublicKey::from_pem(pem)?;
+    /// # Ok(()) }   fn main() { run().unwrap(); }
+    /// ```
+    ///
+    /// [RFC 5280]: https://tools.ietf.org/html/rfc5280
+    pub fn from_pem<P: AsRef<str>>(pem: P) -> Result<Self, Error> {
+        let pkey = PKey::public_key_from_pem(pem.as_ref().as_bytes())
+            .map_err(|e| Error::parse_err(e.to_string()))?;
+        let inner = pkey.ec_key().map_err(|e| Error::parse_err(e.to_string()))?;
+
+        Ok(Self { inner })
     }
 }
 

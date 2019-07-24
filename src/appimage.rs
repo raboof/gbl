@@ -3,9 +3,9 @@
 //! This isn't technically part of the GBL container format, but can be very
 //! useful nonetheless.
 
-use crate::crypto;
 use crate::error::Error;
 use crate::utils::Blob;
+use crate::{crypto, P256KeyPair};
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use num_traits::FromPrimitive;
@@ -363,19 +363,16 @@ impl<'a> AppImage<'a> {
     ///
     /// # Errors
     ///
-    /// Returns an error if:
-    ///
-    /// * `pem_private_key` is malformed or does not contain an ECDSA P-256
-    ///   private key.
-    /// * there is a problem accessing the system's random number generator.
-    pub fn sign(mut self, pem_private_key: &str) -> Result<Self, Error> {
+    /// Returns an error if there is a problem accessing the system's random
+    /// number generator.
+    pub fn sign(mut self, key: &P256KeyPair) -> Result<Self, Error> {
         // The data that appears to be signed is the raw app image, with the
         // app properties already pointing to the new signature position, but
         // not including the space allocated for that signature.
 
         let sig_pos = self.make_ecdsa_signature_space() as usize;
 
-        let signature = crypto::create_signature(pem_private_key, &self.raw[..sig_pos])?;
+        let signature = crypto::create_signature(key, &self.raw[..sig_pos])?;
         self.raw.0.to_mut()[sig_pos..sig_pos + 64].copy_from_slice(&signature);
 
         Ok(self)
