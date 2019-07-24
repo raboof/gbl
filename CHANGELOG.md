@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No changes.
+
+## 0.2.0 - 2019-07-24
+
 ### Breaking changes
 
 * `AppImage::sign`, `Gbl::sign` and `Gbl::verify_signature` now take P-256 keys
