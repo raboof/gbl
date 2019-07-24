@@ -3,7 +3,7 @@ extern crate gbl;
 extern crate criterion;
 
 use criterion::{Bencher, Benchmark, Criterion, Throughput};
-use gbl::{AesKey, AppImage, Gbl};
+use gbl::{AesKey, AppImage, Gbl, P256KeyPair};
 
 /// Includes a binary or text file from the test data directory.
 macro_rules! test_data {
@@ -54,13 +54,14 @@ fn write(c: &mut Criterion) {
 
 fn sign_encrypt(c: &mut Criterion) {
     let data = test_data!(bytes "large/large.gbl");
+    let key = P256KeyPair::from_pem(test_data!(str "signing-key")).unwrap();
     let gbl = Gbl::parse(data).unwrap();
     let gbl = gbl.into_not_signed().unwrap().into_not_encrypted().unwrap();
     let gbl2 = gbl.clone().into_owned();
     c.bench(
         "sign large.gbl",
         Benchmark::new("sign large.gbl", move |b| {
-            b.iter(|| gbl2.clone().sign(test_data!(str "signing-key")).unwrap())
+            b.iter(|| gbl2.clone().sign(&key).unwrap())
         })
         .throughput(Throughput::Bytes(data.len() as u32))
         .sample_size(20),

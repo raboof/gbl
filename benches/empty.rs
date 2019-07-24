@@ -3,7 +3,7 @@ extern crate gbl;
 extern crate criterion;
 
 use criterion::{Bencher, Benchmark, Criterion, Throughput};
-use gbl::{AppImage, Gbl};
+use gbl::{AppImage, Gbl, P256KeyPair};
 
 /// Includes a binary or text file from the test data directory.
 macro_rules! test_data {
@@ -64,8 +64,9 @@ fn write(c: &mut Criterion) {
 
 fn sign_encrypt(c: &mut Criterion) {
     let gbl = Gbl::from_app_image(AppImage::parse(test_data!(bytes "empty/empty.gbl")).unwrap());
+    let key = P256KeyPair::from_pem(test_data!(str "signing-key")).unwrap();
     c.bench_function("sign empty.gbl", move |b| {
-        b.iter(|| gbl.clone().sign(test_data!(str "signing-key")).unwrap())
+        b.iter(|| gbl.clone().sign(&key).unwrap())
     });
 }
 
