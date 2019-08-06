@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No changes.
+
+## 0.3.0 - 2019-08-06
+
 ### Breaking changes
 
 * The update of ring to 0.16.0 was reverted, bringing us back to 0.14.6. This
