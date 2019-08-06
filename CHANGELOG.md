@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-No changes.
+### Breaking changes
+
+* The update of ring to 0.16.0 was reverted, bringing us back to 0.14.6. This
+  was done to improve compatibility with the rest of the ecosystem, which still
+  partially relies on 0.14 (most notable rustls).
 
 ## 0.2.0 - 2019-07-24
 
