@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No changes.
+
+## 0.3.1 - 2019-08-07
+
 ### Bugfixes
 
 * Fixed the documentation of `P256KeyPair::{from_der, from_pem}` incorrectly
