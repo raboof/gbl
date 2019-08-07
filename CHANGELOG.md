@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-No changes.
+### Bugfixes
+
+* Fixed the documentation of `P256KeyPair::{from_der, from_pem}` incorrectly
+  claiming to read PKCS#8 data.
 
 ## 0.3.0 - 2019-08-06
 

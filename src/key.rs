@@ -197,8 +197,11 @@ pub struct P256KeyPair {
 }
 
 impl P256KeyPair {
-    /// Decodes a P-256 key pair from DER-encoded PKCS#8 data.
+    /// Decodes a P-256 key pair from a DER-encoded `ECPrivateKey` structure.
     ///
+    /// The `ECPrivateKey` ASN.1 structure is specified in [RFC 5915].
+    ///
+    /// [RFC 5915]: https://tools.ietf.org/html/rfc5915
     /// # Examples
     ///
     /// ```
@@ -220,14 +223,18 @@ impl P256KeyPair {
     /// let keypair = P256KeyPair::from_der(&der[..])?;
     /// # Ok(()) }   fn main() { run().unwrap(); }
     /// ```
-    pub fn from_der<D: AsRef<[u8]>>(pkcs8_der: D) -> Result<Self, Error> {
-        let inner = EcKey::private_key_from_der(pkcs8_der.as_ref())
+    pub fn from_der<D: AsRef<[u8]>>(der: D) -> Result<Self, Error> {
+        let inner = EcKey::private_key_from_der(der.as_ref())
             .map_err(|e| Error::parse_err(e.to_string()))?;
 
         Ok(Self { inner })
     }
 
-    /// Decodes a P-256 key pair from PEM-encoded PKCS#8 data.
+    /// Decodes a P-256 key pair from a PEM-encoded `ECPrivateKey` structure.
+    ///
+    /// The `ECPrivateKey` ASN.1 structure is specified in [RFC 5915].
+    ///
+    /// [RFC 5915]: https://tools.ietf.org/html/rfc5915
     ///
     /// # Examples
     ///
@@ -244,8 +251,8 @@ impl P256KeyPair {
     /// let keypair = P256KeyPair::from_pem(pem)?;
     /// # Ok(()) }   fn main() { run().unwrap(); }
     /// ```
-    pub fn from_pem<P: AsRef<str>>(pkcs8_pem: P) -> Result<Self, Error> {
-        let inner = EcKey::private_key_from_pem(pkcs8_pem.as_ref().as_bytes())
+    pub fn from_pem<P: AsRef<str>>(pem: P) -> Result<Self, Error> {
+        let inner = EcKey::private_key_from_pem(pem.as_ref().as_bytes())
             .map_err(|e| Error::parse_err(e.to_string()))?;
 
         Ok(Self { inner })
