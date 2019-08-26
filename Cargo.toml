@@ -54,7 +54,7 @@ uuid = "0.7.1"
 failure = "0.1.2"
 
 [dev-dependencies]
-criterion = "0.2.5"
+criterion = "0.3.0"
 
 [[bench]]
 name = "empty"

@@ -21,7 +21,7 @@ fn parse(c: &mut Criterion) {
     c.bench(
         "parse large.gbl",
         Benchmark::new("parse large.gbl", parse(large))
-            .throughput(Throughput::Bytes(large.len() as u32))
+            .throughput(Throughput::Bytes(large.len() as u64))
             .sample_size(20),
     );
 }
@@ -47,7 +47,7 @@ fn write(c: &mut Criterion) {
                 buf
             })
         })
-        .throughput(Throughput::Bytes(bytes.len() as u32))
+        .throughput(Throughput::Bytes(bytes.len() as u64))
         .sample_size(20),
     );
 }
@@ -63,7 +63,7 @@ fn sign_encrypt(c: &mut Criterion) {
         Benchmark::new("sign large.gbl", move |b| {
             b.iter(|| gbl2.clone().sign(&key).unwrap())
         })
-        .throughput(Throughput::Bytes(data.len() as u32))
+        .throughput(Throughput::Bytes(data.len() as u64))
         .sample_size(20),
     );
     c.bench(
@@ -76,7 +76,7 @@ fn sign_encrypt(c: &mut Criterion) {
                 ]))
             })
         })
-        .throughput(Throughput::Bytes(data.len() as u32))
+        .throughput(Throughput::Bytes(data.len() as u64))
         .sample_size(40),
     );
 }

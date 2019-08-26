@@ -57,7 +57,7 @@ fn write(c: &mut Criterion) {
                 buf
             })
         })
-        .throughput(Throughput::Bytes(bytes.len() as u32))
+        .throughput(Throughput::Bytes(bytes.len() as u64))
         .sample_size(20),
     );
 }
