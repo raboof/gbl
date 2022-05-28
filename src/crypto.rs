@@ -11,7 +11,7 @@ use openssl::ec::PointConversionForm;
 use openssl::symm::{self, Cipher, Crypter};
 use ring::rand::{SecureRandom, SystemRandom};
 use ring::signature;
-use {ring, untrusted};
+use ring;
 
 /// Generates a random 12-Byte nonce using the OS random number generator.
 ///
@@ -127,12 +127,8 @@ pub fn verify_signature(
         .to_bytes(group, PointConversionForm::UNCOMPRESSED, &mut bncx)
         .unwrap();
 
-    signature::verify(
-        &signature::ECDSA_P256_SHA256_FIXED,
-        untrusted::Input::from(&uncompressed_bytes),
-        untrusted::Input::from(&data),
-        untrusted::Input::from(&signature[..]),
-    )
+    let public_key = signature::UnparsedPublicKey::new(&signature::ECDSA_P256_SHA256_FIXED, uncompressed_bytes);
+    public_key.verify(&data, &signature[..])
     .map_err(|_| ErrorKind::InvalidSignature)?;
     Ok(())
 }
@@ -153,15 +149,15 @@ pub fn create_signature(keypair: &P256KeyPair, data_to_sign: &[u8]) -> Result<[u
 
     let keypair = signature::EcdsaKeyPair::from_private_key_and_public_key(
         &signature::ECDSA_P256_SHA256_FIXED_SIGNING,
-        untrusted::Input::from(&priv_key),
-        untrusted::Input::from(&pub_key),
+        &priv_key,
+        &pub_key,
     )
     .map_err(|_| ErrorKind::ParseError)?;
 
     let sig = keypair
         .sign(
             &ring::rand::SystemRandom::new(),
-            untrusted::Input::from(data_to_sign),
+            data_to_sign,
         )
         .map_err(|e| Error::with_details(ErrorKind::Other, e.to_string()))?
         .as_ref()
@@ -171,12 +167,8 @@ pub fn create_signature(keypair: &P256KeyPair, data_to_sign: &[u8]) -> Result<[u
     if cfg!(debug_assertions) {
         // Just to make sure everything worked, verify the created signature right
         // afterwards.
-        signature::verify(
-            &signature::ECDSA_P256_SHA256_FIXED,
-            untrusted::Input::from(&pub_key),
-            untrusted::Input::from(data_to_sign),
-            untrusted::Input::from(&sig),
-        )
+        let public_key = signature::UnparsedPublicKey::new(&signature::ECDSA_P256_SHA256_FIXED, &pub_key);
+        public_key.verify(data_to_sign, &sig)
         .expect("created signature could not be verified");
     }
 
